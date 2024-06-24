@@ -1,0 +1,129 @@
+# 야후 주식데이터 가져오기 (삼성)
+# 라이브러리 설치
+!pip install finance-datareader 
+import FinanceDatareader as fdr
+
+# 데이터 불러오기
+df=fdr.DataReader(symbol='005930',start='2020-01-01',end='2021-01-01')
+
+# 평균, 표준편차, 사분위수 등 주요 통계지표
+df.describe()
+
+# 종가(Close)의 최대값, 최소값, 평균 구하기
+df['Close'].max()
+df['Close'].min()
+df['Close'].mean()
+
+# row의 개수
+df.shape[0]
+
+# 특정 컬럼만 선택
+df['Close']
+df[['High','Low']]
+
+# 상위 3개의 로우
+df.head(3)
+
+# 시작가(Open) 대비 종가(Close) 높았던 날
+df[df['Open']<=df['Close']]
+
+# 종가(Close) 기준 주가가 80000월 이상이였던 날짜 
+df[df['OPen']>=80000].index
+
+# '2020-01-15' 날짜의 고가와 저가 추출
+df.loc['2020-01-15',['High','Low']]
+
+# 100번째 데이터
+df.iloc[100]
+
+# 날짜 역순으로 정렬
+df.sort_index(ascending=False)
+
+# 종가 데이터 큰 순서대로
+df.sort_values(by=['Close'],ascending=False)
+
+# 종가가 가장 큰 데이터 추출
+df[df['Close']==max(df['Close'])]
+
+# 인덱스 값 0에서 순차적으로 설정
+df.reset_index(inplace=True)
+
+# 인덱스 이름 바꾸기
+df.rename(columns={'Date':'날짜','High':'고가','Low':'저가'})
+
+# 날짜 열 지우기
+df.drop(columns=['Date'],inplace=True)
+
+# 종가과 시가 차이를 보여주는 Diff 컬럼 생성
+df['Diff']=df['Close']-df['Open']
+
+# Date=> year,month, day
+df['year']=[d.year for d in df['Date']]
+df['month']=[d.month for d in df['Date']]
+df['day']=[d.day for d in df['Date']]
+
+# 모든 데이터 소수점 둘째자리
+df.applymap(lambda x:'%.2f'%x)
+
+# 거래량 필드 생성후 콤마 생성
+df['거래량']=df['Volumn'].apply(lambda x:"{:,}".format(x))
+
+# 월별로 그룹핑하고 거래량 평균값 표시
+volume_mean=df['Volumn'].groupby(df['Month']).mean()
+
+# 결측값 확인하기
+df.isnull().sum()
+
+# 결측값 삭제
+df.dropna()
+
+# 결측값 치환
+df.fillna({'High':90000,'Low':50000})
+
+# 12월과 11월 데이터 합치기
+dec_df=df[df['Month']==12]
+nov_df=df[df['Month']==11]
+
+dec_nov_df=pd.concat([dec_df,nov_df])
+
+# 시각화에 필요한 것들 준비
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.rcParams["font.family"]='Malgun Gothic' # 글꼴적용
+
+# 글꼴찾기
+import matplotlib.font_manager as fm
+f = [f.name for f in fm.fontManager.ttflist]
+print(f)
+
+# 데이터 가져오기
+df=pd.read_csv("C:/Users/sy/Desktop/good.csv",encoding='euc-kr')
+
+# 데이터 전처리
+# 필요없는 열 지우기
+df.drop(['기준년도','가입자 일련번호','치아우식증유무','데이터 공개일자','치석'],inplace=True,axis=1)
+# 열 이름 바꾸기
+df.rename(columns={'연령대 코드(5세단위)':'연령코드','신장(5Cm단위)':'신장','체중(5Kg 단위)':'체중','식전혈당(공복혈당)':'혈당'},inplace=True)
+# 결측값이 있는 행 지우기
+df=df.dropna()
+
+# 그림 그리기
+fig, axs=plt.subplots(5,5)
+fig.set_size_inches(20,24)
+
+for i in range(5):
+    for j in range(5):
+        attr=i*5+j+1
+        if df[df.columns[attr]].nunique()<30:
+            sns.countplot(x=df.columns[attr], data=df,ax=axs[i][j])
+        else:
+            sns.histplot(x=df.columns[attr],data=df, kde=True, ax=axs[i][j])
+
+sns.scatterplot(x=df['수축기 혈압'],y=df['이완기 혈압'], hue=df['흡연상태'])
+sns.lineplot(x=df['연령코드'],y=df['총 콜레스테롤'])
+sns.boxplot(x=df['연령코드'],y=df['혈색소'])
+sns.barplot(x=df['연령코드'],y=df['혈당'],hue=df['성별코드'])
+pivot_df=df.pivot_table("혈당","시도코드","연령코드")
+sns.heatmap(pivot_df)
+
